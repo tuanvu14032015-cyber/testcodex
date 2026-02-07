@@ -1,0 +1,888 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/index.html b/index.html
+index 4a382fcdbc031ca36b4e3190e241e978c4ee89eb..24fb4d3e129922fb06586a2c0279c0d44754bc38 100644
+--- a/index.html
++++ b/index.html
+@@ -1,24 +1,868 @@
+ <!DOCTYPE html>
+-<html lang="en">
++<html lang="vi">
+ <head>
+   <meta charset="UTF-8" />
+   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+-  <title>Test Page</title>
++  <title>Retro Blaster: Neo-Roblox Arena</title>
+   <style>
++    :root {
++      color-scheme: dark;
++      --bg: #05060b;
++      --panel: rgba(10, 15, 25, 0.85);
++      --accent: #42f5d7;
++      --accent-2: #f7c948;
++      --danger: #ff5d6c;
++      --success: #42f58d;
++      --text: #e6f7ff;
++      --muted: rgba(230, 247, 255, 0.65);
++    }
++
++    * {
++      box-sizing: border-box;
++      margin: 0;
++      padding: 0;
++      font-family: "Press Start 2P", "Trebuchet MS", monospace;
++    }
++
+     body {
+-      background: #111;
+-      color: #fff;
+-      font-family: Arial, sans-serif;
+-      padding: 20px;
++      background: radial-gradient(circle at top, #0a1225, #04050a 55%, #000 100%);
++      color: var(--text);
++      min-height: 100vh;
++      overflow: hidden;
++    }
++
++    .scanlines {
++      position: fixed;
++      inset: 0;
++      background: repeating-linear-gradient(
++        to bottom,
++        rgba(255, 255, 255, 0.04) 0px,
++        rgba(255, 255, 255, 0.04) 1px,
++        transparent 1px,
++        transparent 3px
++      );
++      mix-blend-mode: screen;
++      pointer-events: none;
++      opacity: 0.3;
++    }
++
++    .hud {
++      position: absolute;
++      inset: 24px 24px auto 24px;
++      display: grid;
++      grid-template-columns: repeat(3, minmax(0, 1fr));
++      gap: 18px;
++      z-index: 2;
++      text-transform: uppercase;
++      font-size: 12px;
++    }
++
++    .panel {
++      background: var(--panel);
++      border: 1px solid rgba(66, 245, 215, 0.3);
++      border-radius: 14px;
++      padding: 14px 16px;
++      box-shadow: 0 0 18px rgba(66, 245, 215, 0.2);
++      backdrop-filter: blur(4px);
++    }
++
++    .panel h2 {
++      font-size: 12px;
++      margin-bottom: 10px;
++      color: var(--accent);
++      letter-spacing: 1px;
++    }
++
++    .panel p {
++      font-size: 11px;
++      line-height: 1.6;
++      color: var(--muted);
++    }
++
++    .meter {
++      margin-top: 10px;
++      background: rgba(255, 255, 255, 0.08);
++      border-radius: 8px;
++      overflow: hidden;
++      height: 12px;
++    }
++
++    .meter span {
++      display: block;
++      height: 100%;
++      width: 50%;
++      background: linear-gradient(90deg, var(--success), var(--accent));
++      transition: width 0.2s ease;
++    }
++
++    .score {
++      display: flex;
++      align-items: center;
++      justify-content: space-between;
++      gap: 12px;
++    }
++
++    .score strong {
++      font-size: 18px;
++      color: var(--accent-2);
++      text-shadow: 0 0 10px rgba(247, 201, 72, 0.7);
++    }
++
++    .mini-map {
++      display: grid;
++      grid-template-columns: repeat(5, 1fr);
++      gap: 4px;
++      margin-top: 12px;
++    }
++
++    .mini-map span {
++      display: block;
++      height: 10px;
++      border-radius: 4px;
++      background: rgba(66, 245, 215, 0.15);
++    }
++
++    .mini-map span.active {
++      background: var(--accent);
++      box-shadow: 0 0 8px rgba(66, 245, 215, 0.8);
++    }
++
++    .controls {
++      position: absolute;
++      right: 24px;
++      bottom: 24px;
++      width: 320px;
++      background: var(--panel);
++      border-radius: 16px;
++      padding: 16px;
++      border: 1px solid rgba(255, 255, 255, 0.12);
++      z-index: 2;
++      animation: float 4s ease-in-out infinite;
++    }
++
++    .controls h3 {
++      font-size: 12px;
++      margin-bottom: 10px;
++      color: var(--accent);
++    }
++
++    .controls ul {
++      list-style: none;
++      font-size: 10px;
++      line-height: 1.8;
++      color: var(--muted);
++    }
++
++    .controls li span {
++      color: var(--accent-2);
++    }
++
++    @keyframes float {
++      0%,
++      100% {
++        transform: translateY(0px);
++      }
++      50% {
++        transform: translateY(-8px);
++      }
++    }
++
++    canvas {
++      display: block;
++      position: fixed;
++      inset: 0;
++      width: 100vw;
++      height: 100vh;
++      background: radial-gradient(circle at center, #0b1225 0%, #02030a 60%);
++      image-rendering: pixelated;
++    }
++
++    .overlay {
++      position: absolute;
++      inset: 0;
++      background: linear-gradient(120deg, rgba(5, 8, 16, 0.9), rgba(3, 4, 10, 0.95));
++      display: flex;
++      align-items: center;
++      justify-content: center;
++      z-index: 4;
++      text-align: center;
++      padding: 24px;
++    }
++
++    .overlay.hidden {
++      opacity: 0;
++      pointer-events: none;
++      transition: opacity 0.5s ease;
++    }
++
++    .overlay .card {
++      background: rgba(15, 20, 35, 0.9);
++      padding: 28px;
++      border-radius: 24px;
++      border: 1px solid rgba(66, 245, 215, 0.4);
++      max-width: 560px;
++      box-shadow: 0 0 28px rgba(66, 245, 215, 0.3);
++      animation: pulse 2.2s ease-in-out infinite;
++    }
++
++    .overlay h1 {
++      font-size: 22px;
++      color: var(--accent);
++      margin-bottom: 14px;
++      letter-spacing: 1px;
++    }
++
++    .overlay p {
++      font-size: 11px;
++      line-height: 1.8;
++      color: var(--muted);
++      margin-bottom: 14px;
++    }
++
++    .overlay button {
++      background: var(--accent);
++      color: #001117;
++      border: none;
++      padding: 12px 20px;
++      font-size: 11px;
++      border-radius: 12px;
++      cursor: pointer;
++      box-shadow: 0 0 16px rgba(66, 245, 215, 0.8);
++      transition: transform 0.2s ease, box-shadow 0.2s ease;
++    }
++
++    .overlay button:hover {
++      transform: translateY(-2px) scale(1.02);
++      box-shadow: 0 0 20px rgba(66, 245, 215, 0.9);
++    }
++
++    .vignette {
++      position: fixed;
++      inset: 0;
++      background: radial-gradient(circle, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.6) 100%);
++      pointer-events: none;
++      z-index: 3;
++    }
++
++    @keyframes pulse {
++      0%,
++      100% {
++        transform: scale(1);
++      }
++      50% {
++        transform: scale(1.02);
++      }
++    }
++
++    .glow {
++      position: absolute;
++      width: 220px;
++      height: 220px;
++      border-radius: 50%;
++      background: radial-gradient(circle, rgba(66, 245, 215, 0.25), transparent 70%);
++      filter: blur(6px);
++      animation: orbit 6s linear infinite;
++      pointer-events: none;
++    }
++
++    @keyframes orbit {
++      0% {
++        transform: translate(0, 0) scale(1);
++        opacity: 0.6;
++      }
++      50% {
++        transform: translate(40px, -30px) scale(1.1);
++        opacity: 0.9;
++      }
++      100% {
++        transform: translate(0, 0) scale(1);
++        opacity: 0.6;
++      }
++    }
++
++    .status {
++      position: absolute;
++      left: 50%;
++      bottom: 36px;
++      transform: translateX(-50%);
++      display: flex;
++      gap: 16px;
++      padding: 10px 16px;
++      background: rgba(12, 16, 28, 0.85);
++      border-radius: 12px;
++      border: 1px solid rgba(255, 255, 255, 0.12);
++      z-index: 2;
++      font-size: 10px;
++      letter-spacing: 1px;
++    }
++
++    .status span {
++      color: var(--muted);
++    }
++
++    .status strong {
++      color: var(--accent-2);
++    }
++
++    .badge {
++      display: inline-flex;
++      align-items: center;
++      gap: 8px;
++      padding: 6px 10px;
++      border-radius: 999px;
++      background: rgba(66, 245, 215, 0.1);
++      color: var(--accent);
++      font-size: 9px;
++      text-transform: uppercase;
++    }
++
++    .badge::before {
++      content: "";
++      width: 8px;
++      height: 8px;
++      border-radius: 50%;
++      background: var(--accent);
++      box-shadow: 0 0 10px rgba(66, 245, 215, 0.8);
++    }
++
++    .credits {
++      position: absolute;
++      left: 24px;
++      bottom: 24px;
++      font-size: 9px;
++      color: rgba(230, 247, 255, 0.5);
++      z-index: 2;
+     }
+-    h1 {
+-      color: #4fd1c5;
++
++    .credits span {
++      color: var(--accent);
++    }
++
++    .shimmer {
++      background: linear-gradient(90deg, transparent, rgba(66, 245, 215, 0.6), transparent);
++      animation: shimmer 2.2s linear infinite;
++      background-size: 200% 100%;
++    }
++
++    @keyframes shimmer {
++      0% {
++        background-position: 200% 0;
++      }
++      100% {
++        background-position: -200% 0;
++      }
+     }
+   </style>
+ </head>
+ <body>
+-  <h1>Hello!</h1>
+-  <p>If bạn thấy trang trắng, nghĩa là file rỗng hoặc code build sai. Đây là trang test đơn giản để kiểm tra Hugo có render hay không.</p>
++  <canvas id="game"></canvas>
++  <div class="scanlines"></div>
++  <div class="vignette"></div>
++  <div class="glow" style="top: 10%; left: 20%;"></div>
++  <div class="glow" style="top: 65%; left: 70%; animation-delay: 1.4s;"></div>
++
++  <div class="hud">
++    <div class="panel">
++      <h2>Trạm chỉ huy</h2>
++      <div class="score">
++        <div>
++          <p>Điểm</p>
++          <strong id="score">000000</strong>
++        </div>
++        <div>
++          <p>Combo</p>
++          <strong id="combo">x1</strong>
++        </div>
++      </div>
++      <div class="meter">
++        <span id="energy"></span>
++      </div>
++      <p style="margin-top: 10px;">Năng lượng phản lực: <span id="energyText">100%</span></p>
++    </div>
++    <div class="panel">
++      <h2>Roblox Retro Squad</h2>
++      <p>Phi đội phòng thủ chống lại làn sóng bot retro. Di chuyển nhanh, bắn chuẩn, đừng để bị áp sát.</p>
++      <div class="mini-map" id="waveMap">
++        <span class="active"></span>
++        <span></span>
++        <span></span>
++        <span></span>
++        <span></span>
++      </div>
++      <p style="margin-top: 12px;">Wave hiện tại: <strong id="wave">1</strong></p>
++    </div>
++    <div class="panel">
++      <h2>Thông số chiến hạm</h2>
++      <p>Máu: <strong id="hp">100</strong></p>
++      <div class="meter">
++        <span id="hpBar" style="background: linear-gradient(90deg, var(--danger), #ffb3c1);"></span>
++      </div>
++      <p style="margin-top: 12px;">Vũ khí: <span class="badge">Neon Blaster</span></p>
++    </div>
++  </div>
++
++  <div class="controls">
++    <h3>Điều khiển</h3>
++    <ul>
++      <li><span>WASD / ↑ ↓ ← →</span> Di chuyển</li>
++      <li><span>Chuột trái</span> Bắn liên tục</li>
++      <li><span>Space</span> Kích hoạt turbo (tiêu hao năng lượng)</li>
++      <li><span>R</span> Làm mới wave</li>
++      <li><span>P</span> Tạm dừng</li>
++    </ul>
++  </div>
++
++  <div class="status">
++    <span>Retro Mode: <strong id="mode">ACTIVE</strong></span>
++    <span>Drone sống: <strong id="alive">0</strong></span>
++    <span>Tốc độ: <strong id="speed">1.0x</strong></span>
++  </div>
++
++  <div class="credits">Thiết kế: <span>Neo-Block Studio</span> • 2024</div>
++
++  <div class="overlay" id="overlay">
++    <div class="card shimmer">
++      <div class="badge" style="margin-bottom: 12px;">Roblox Retro Shooter</div>
++      <h1>Retro Blaster: Neo-Roblox Arena</h1>
++      <p>Trải nghiệm game bắn súng retro phong cách Roblox. Chạm vào màn hình, bật turbo, và giữ nhịp combo để ghi điểm cao!</p>
++      <p>Game chạy trực tiếp bằng HTML + Canvas. Hiệu ứng neon, scanline và particle tạo cảm giác arcade cổ điển.</p>
++      <button id="startBtn">BẮT ĐẦU CHIẾN</button>
++    </div>
++  </div>
++
++  <script>
++    const canvas = document.getElementById("game");
++    const ctx = canvas.getContext("2d");
++    const overlay = document.getElementById("overlay");
++    const startBtn = document.getElementById("startBtn");
++    const scoreEl = document.getElementById("score");
++    const comboEl = document.getElementById("combo");
++    const waveEl = document.getElementById("wave");
++    const waveMap = document.getElementById("waveMap");
++    const hpEl = document.getElementById("hp");
++    const hpBar = document.getElementById("hpBar");
++    const energyBar = document.getElementById("energy");
++    const energyText = document.getElementById("energyText");
++    const aliveEl = document.getElementById("alive");
++    const speedEl = document.getElementById("speed");
++
++    const state = {
++      running: false,
++      paused: false,
++      score: 0,
++      combo: 1,
++      wave: 1,
++      hp: 100,
++      energy: 100,
++      mouse: { x: 0, y: 0, down: false },
++      keys: new Set(),
++      lastShot: 0,
++      lastTime: 0,
++    };
++
++    const player = {
++      x: 0,
++      y: 0,
++      radius: 18,
++      speed: 2.8,
++      turbo: 1,
++      color: "#42f5d7",
++    };
++
++    const bullets = [];
++    const enemies = [];
++    const particles = [];
++    const stars = [];
++
++    function resize() {
++      canvas.width = window.innerWidth;
++      canvas.height = window.innerHeight;
++      if (!player.x) {
++        player.x = canvas.width * 0.5;
++        player.y = canvas.height * 0.7;
++      }
++    }
++
++    function initStars() {
++      stars.length = 0;
++      const count = Math.floor(canvas.width / 10);
++      for (let i = 0; i < count; i += 1) {
++        stars.push({
++          x: Math.random() * canvas.width,
++          y: Math.random() * canvas.height,
++          size: 1 + Math.random() * 2,
++          speed: 0.2 + Math.random() * 0.8,
++          alpha: 0.3 + Math.random() * 0.7,
++        });
++      }
++    }
++
++    function spawnWave() {
++      enemies.length = 0;
++      const amount = 6 + state.wave * 2;
++      for (let i = 0; i < amount; i += 1) {
++        const angle = Math.random() * Math.PI * 2;
++        const radius = Math.max(canvas.width, canvas.height) * 0.6;
++        enemies.push({
++          x: canvas.width / 2 + Math.cos(angle) * radius,
++          y: canvas.height / 2 + Math.sin(angle) * radius,
++          size: 14 + Math.random() * 10,
++          speed: 0.5 + Math.random() * 0.6 + state.wave * 0.1,
++          hp: 2 + Math.floor(state.wave / 2),
++          hue: 180 + Math.random() * 100,
++        });
++      }
++      updateWaveMap();
++    }
++
++    function updateWaveMap() {
++      const nodes = Array.from(waveMap.children);
++      nodes.forEach((node, index) => {
++        node.classList.toggle("active", index < Math.min(state.wave, nodes.length));
++      });
++    }
++
++    function updateUI() {
++      scoreEl.textContent = state.score.toString().padStart(6, "0");
++      comboEl.textContent = `x${state.combo}`;
++      waveEl.textContent = state.wave;
++      hpEl.textContent = state.hp;
++      hpBar.style.width = `${state.hp}%`;
++      energyBar.style.width = `${state.energy}%`;
++      energyText.textContent = `${state.energy}%`;
++      aliveEl.textContent = enemies.length;
++      speedEl.textContent = `${player.speed.toFixed(1)}x`;
++    }
++
++    function shoot(now) {
++      const cooldown = 180 - Math.min(state.combo * 8, 80);
++      if (now - state.lastShot < cooldown) return;
++      state.lastShot = now;
++      const angle = Math.atan2(state.mouse.y - player.y, state.mouse.x - player.x);
++      const speed = 7 + Math.min(state.combo, 8) * 0.3;
++      bullets.push({
++        x: player.x,
++        y: player.y,
++        vx: Math.cos(angle) * speed,
++        vy: Math.sin(angle) * speed,
++        life: 60,
++      });
++      for (let i = 0; i < 6; i += 1) {
++        particles.push({
++          x: player.x,
++          y: player.y,
++          vx: (Math.random() - 0.5) * 2,
++          vy: (Math.random() - 0.5) * 2,
++          life: 20,
++          color: "rgba(66, 245, 215, 0.7)",
++        });
++      }
++    }
++
++    function takeDamage(amount) {
++      state.hp = Math.max(state.hp - amount, 0);
++      state.combo = 1;
++      if (state.hp <= 0) {
++        state.running = false;
++        overlay.classList.remove("hidden");
++        startBtn.textContent = "CHƠI LẠI";
++      }
++    }
++
++    function explodeEnemy(enemy) {
++      for (let i = 0; i < 20; i += 1) {
++        particles.push({
++          x: enemy.x,
++          y: enemy.y,
++          vx: (Math.random() - 0.5) * 3,
++          vy: (Math.random() - 0.5) * 3,
++          life: 40,
++          color: `hsla(${enemy.hue}, 90%, 60%, 0.8)`,
++        });
++      }
++    }
++
++    function updatePlayer(delta) {
++      let moveX = 0;
++      let moveY = 0;
++      if (state.keys.has("w") || state.keys.has("ArrowUp")) moveY -= 1;
++      if (state.keys.has("s") || state.keys.has("ArrowDown")) moveY += 1;
++      if (state.keys.has("a") || state.keys.has("ArrowLeft")) moveX -= 1;
++      if (state.keys.has("d") || state.keys.has("ArrowRight")) moveX += 1;
++      const mag = Math.hypot(moveX, moveY) || 1;
++      let speed = player.speed;
++      if (state.keys.has(" ") && state.energy > 0) {
++        speed *= 1.8;
++        state.energy = Math.max(state.energy - delta * 0.02, 0);
++      } else {
++        state.energy = Math.min(state.energy + delta * 0.015, 100);
++      }
++      player.x += (moveX / mag) * speed * delta * 0.06;
++      player.y += (moveY / mag) * speed * delta * 0.06;
++      player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
++      player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
++    }
++
++    function updateBullets(delta) {
++      for (let i = bullets.length - 1; i >= 0; i -= 1) {
++        const bullet = bullets[i];
++        bullet.x += bullet.vx * delta * 0.06;
++        bullet.y += bullet.vy * delta * 0.06;
++        bullet.life -= delta * 0.06;
++        if (bullet.life <= 0) {
++          bullets.splice(i, 1);
++        }
++      }
++    }
++
++    function updateEnemies(delta) {
++      for (let i = enemies.length - 1; i >= 0; i -= 1) {
++        const enemy = enemies[i];
++        const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
++        enemy.x += Math.cos(angle) * enemy.speed * delta * 0.04;
++        enemy.y += Math.sin(angle) * enemy.speed * delta * 0.04;
++
++        const hitDistance = enemy.size + player.radius;
++        if (Math.hypot(player.x - enemy.x, player.y - enemy.y) < hitDistance) {
++          takeDamage(6);
++          explodeEnemy(enemy);
++          enemies.splice(i, 1);
++        }
++      }
++    }
++
++    function handleCollisions() {
++      for (let i = enemies.length - 1; i >= 0; i -= 1) {
++        const enemy = enemies[i];
++        for (let j = bullets.length - 1; j >= 0; j -= 1) {
++          const bullet = bullets[j];
++          const distance = Math.hypot(enemy.x - bullet.x, enemy.y - bullet.y);
++          if (distance < enemy.size) {
++            bullets.splice(j, 1);
++            enemy.hp -= 1;
++            if (enemy.hp <= 0) {
++              state.score += 120 * state.combo;
++              state.combo = Math.min(state.combo + 1, 9);
++              explodeEnemy(enemy);
++              enemies.splice(i, 1);
++            }
++            return;
++          }
++        }
++      }
++    }
++
++    function updateParticles(delta) {
++      for (let i = particles.length - 1; i >= 0; i -= 1) {
++        const particle = particles[i];
++        particle.x += particle.vx * delta * 0.06;
++        particle.y += particle.vy * delta * 0.06;
++        particle.life -= delta * 0.08;
++        if (particle.life <= 0) {
++          particles.splice(i, 1);
++        }
++      }
++    }
++
++    function updateStars(delta) {
++      for (const star of stars) {
++        star.y += star.speed * delta * 0.02;
++        if (star.y > canvas.height) {
++          star.y = 0;
++          star.x = Math.random() * canvas.width;
++        }
++      }
++    }
++
++    function drawStars() {
++      ctx.save();
++      ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
++      for (const star of stars) {
++        ctx.globalAlpha = star.alpha;
++        ctx.fillRect(star.x, star.y, star.size, star.size);
++      }
++      ctx.restore();
++    }
++
++    function drawPlayer() {
++      ctx.save();
++      ctx.translate(player.x, player.y);
++      ctx.rotate(Math.atan2(state.mouse.y - player.y, state.mouse.x - player.x) + Math.PI / 2);
++      ctx.fillStyle = player.color;
++      ctx.shadowColor = "rgba(66, 245, 215, 0.8)";
++      ctx.shadowBlur = 12;
++      ctx.beginPath();
++      ctx.moveTo(0, -player.radius);
++      ctx.lineTo(player.radius * 0.6, player.radius);
++      ctx.lineTo(0, player.radius * 0.4);
++      ctx.lineTo(-player.radius * 0.6, player.radius);
++      ctx.closePath();
++      ctx.fill();
++      ctx.restore();
++    }
++
++    function drawBullets() {
++      ctx.save();
++      ctx.fillStyle = "#f7c948";
++      ctx.shadowColor = "rgba(247, 201, 72, 0.8)";
++      ctx.shadowBlur = 8;
++      bullets.forEach((bullet) => {
++        ctx.beginPath();
++        ctx.arc(bullet.x, bullet.y, 3, 0, Math.PI * 2);
++        ctx.fill();
++      });
++      ctx.restore();
++    }
++
++    function drawEnemies() {
++      enemies.forEach((enemy) => {
++        ctx.save();
++        ctx.translate(enemy.x, enemy.y);
++        ctx.fillStyle = `hsla(${enemy.hue}, 80%, 55%, 0.8)`;
++        ctx.strokeStyle = `hsla(${enemy.hue}, 80%, 70%, 1)`;
++        ctx.lineWidth = 2;
++        ctx.shadowColor = `hsla(${enemy.hue}, 80%, 60%, 0.8)`;
++        ctx.shadowBlur = 10;
++        ctx.beginPath();
++        ctx.rect(-enemy.size / 1.2, -enemy.size / 1.2, enemy.size, enemy.size);
++        ctx.fill();
++        ctx.stroke();
++        ctx.restore();
++      });
++    }
++
++    function drawParticles() {
++      particles.forEach((particle) => {
++        ctx.save();
++        ctx.fillStyle = particle.color;
++        ctx.globalAlpha = Math.max(particle.life / 40, 0);
++        ctx.fillRect(particle.x, particle.y, 2, 2);
++        ctx.restore();
++      });
++    }
++
++    function drawTarget() {
++      ctx.save();
++      ctx.strokeStyle = "rgba(66, 245, 215, 0.6)";
++      ctx.lineWidth = 1;
++      ctx.beginPath();
++      ctx.arc(state.mouse.x, state.mouse.y, 14, 0, Math.PI * 2);
++      ctx.stroke();
++      ctx.beginPath();
++      ctx.moveTo(state.mouse.x - 18, state.mouse.y);
++      ctx.lineTo(state.mouse.x + 18, state.mouse.y);
++      ctx.moveTo(state.mouse.x, state.mouse.y - 18);
++      ctx.lineTo(state.mouse.x, state.mouse.y + 18);
++      ctx.stroke();
++      ctx.restore();
++    }
++
++    function drawHUDGlow() {
++      ctx.save();
++      ctx.globalCompositeOperation = "lighter";
++      ctx.fillStyle = "rgba(66, 245, 215, 0.08)";
++      ctx.fillRect(0, 0, canvas.width, canvas.height);
++      ctx.restore();
++    }
++
++    function loop(timestamp) {
++      if (!state.running) return;
++      if (state.paused) {
++        requestAnimationFrame(loop);
++        return;
++      }
++      const delta = timestamp - state.lastTime || 16;
++      state.lastTime = timestamp;
++      ctx.clearRect(0, 0, canvas.width, canvas.height);
++
++      updateStars(delta);
++      drawStars();
++
++      updatePlayer(delta);
++      if (state.mouse.down) {
++        shoot(timestamp);
++      }
++      updateBullets(delta);
++      updateEnemies(delta);
++      handleCollisions();
++      updateParticles(delta);
++
++      drawParticles();
++      drawEnemies();
++      drawBullets();
++      drawPlayer();
++      drawTarget();
++      drawHUDGlow();
++
++      if (enemies.length === 0) {
++        state.wave += 1;
++        spawnWave();
++      }
++      updateUI();
++      requestAnimationFrame(loop);
++    }
++
++    function startGame() {
++      state.running = true;
++      state.paused = false;
++      state.score = 0;
++      state.combo = 1;
++      state.wave = 1;
++      state.hp = 100;
++      state.energy = 100;
++      bullets.length = 0;
++      particles.length = 0;
++      spawnWave();
++      updateUI();
++      overlay.classList.add("hidden");
++      state.lastTime = performance.now();
++      requestAnimationFrame(loop);
++    }
++
++    window.addEventListener("resize", () => {
++      resize();
++      initStars();
++    });
++
++    window.addEventListener("mousemove", (event) => {
++      const rect = canvas.getBoundingClientRect();
++      state.mouse.x = event.clientX - rect.left;
++      state.mouse.y = event.clientY - rect.top;
++    });
++
++    window.addEventListener("mousedown", () => {
++      state.mouse.down = true;
++    });
++
++    window.addEventListener("mouseup", () => {
++      state.mouse.down = false;
++    });
++
++    window.addEventListener("keydown", (event) => {
++      const key = event.key.toLowerCase();
++      if (key === "p") {
++        state.paused = !state.paused;
++        return;
++      }
++      if (key === "r") {
++        spawnWave();
++        return;
++      }
++      state.keys.add(event.key);
++      if (event.key === " ") {
++        event.preventDefault();
++      }
++    });
++
++    window.addEventListener("keyup", (event) => {
++      state.keys.delete(event.key);
++    });
++
++    startBtn.addEventListener("click", startGame);
++
++    resize();
++    initStars();
++    updateUI();
++  </script>
+ </body>
+ </html>
+-
+ 
+EOF
+)
