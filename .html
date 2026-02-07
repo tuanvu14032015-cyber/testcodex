@@ -1,7 +1,726 @@
- (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/index.html b/index.html
-index 4a382fcdbc031ca36b4e3190e241e978c4ee89eb..24fb4d3e129922fb06586a2c0279c0d44754bc38 100644
---- a/index.html
+
+ <!DOCTYPE html>
+   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++  <title>Kali Linux VirtualBox Simulator</title>
+   <style>
++      --panel-2: rgba(10, 12, 18, 0.9);
++      --accent: #61dafb;
++      --accent-2: #38bdf8;
++      --accent-3: #22c55e;
++      --text: #e5e7eb;
++      --muted: rgba(229, 231, 235, 0.6);
++      --danger: #ef4444;
++      --shadow: rgba(97, 218, 251, 0.25);
++      --chrome: #0f1116;
++      --chrome-border: rgba(255, 255, 255, 0.08);
++    }
++
++    * {
++      margin: 0;
++      padding: 0;
++      box-sizing: border-box;
++      font-family: "Fira Code", "JetBrains Mono", "Consolas", monospace;
++    }
++
+     body {
+-      background: #111;
+-      color: #fff;
+-      font-family: Arial, sans-serif;
+-      padding: 20px;
++      background: #0a0c10;
++      color: var(--text);
++      height: 100vh;
++      overflow: hidden;
++      display: grid;
++      place-items: center;
++      padding: 18px;
++    }
++
++    .virtualbox-shell {
++      width: min(1480px, 96vw);
++      height: min(900px, 92vh);
++      background: #0b0e13;
++      border-radius: 10px;
++      box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
++      overflow: hidden;
++      display: grid;
++      grid-template-rows: auto auto 1fr auto;
++      border: 1px solid rgba(255, 255, 255, 0.08);
++    }
++
++    .vbox-titlebar {
++      display: flex;
++      align-items: center;
++      justify-content: space-between;
++      padding: 6px 12px;
++      background: linear-gradient(90deg, #12151c, #0e1218 60%, #12151c);
++      border-bottom: 1px solid var(--chrome-border);
++      font-size: 12px;
++      color: var(--muted);
++    }
++
++    .vbox-titlebar strong {
++      color: var(--accent);
++    }
++
++    .vbox-controls {
++      display: flex;
++      gap: 6px;
++      align-items: center;
++    }
++
++    .vbox-dot {
++      width: 11px;
++      height: 11px;
++      border-radius: 50%;
++      background: rgba(255, 255, 255, 0.18);
++      border: 1px solid rgba(255, 255, 255, 0.12);
++    }
++
++    .vbox-menubar {
++      display: flex;
++      gap: 18px;
++      padding: 6px 12px;
++      background: var(--chrome);
++      border-bottom: 1px solid var(--chrome-border);
++      font-size: 12px;
++      color: var(--muted);
++    }
++
++    .vbox-menubar span {
++      cursor: default;
++    }
++
++    .vbox-toolbar {
++      display: flex;
++      gap: 10px;
++      padding: 6px 10px;
++      background: rgba(12, 14, 20, 0.96);
++      border-bottom: 1px solid var(--chrome-border);
++      align-items: center;
++    }
++
++    .toolbar-btn {
++      display: flex;
++      align-items: center;
++      gap: 6px;
++      padding: 6px 10px;
++      border-radius: 8px;
++      background: rgba(97, 218, 251, 0.1);
++      border: 1px solid rgba(97, 218, 251, 0.25);
++      color: var(--accent);
++      font-size: 11px;
++    }
++
++    .toolbar-btn span {
++      opacity: 0.7;
++    }
++
++    .kali-desktop {
++      position: relative;
++      display: grid;
++      grid-template-columns: 60px 1fr 280px;
++      gap: 16px;
++      padding: 16px;
++      height: 100%;
++      background:
++        linear-gradient(120deg, rgba(14, 17, 25, 0.92), rgba(9, 11, 16, 0.96)),
++        radial-gradient(circle at 20% 20%, rgba(97, 218, 251, 0.14), transparent 40%),
++        radial-gradient(circle at 75% 15%, rgba(34, 197, 94, 0.12), transparent 45%),
++        radial-gradient(circle at 30% 80%, rgba(56, 189, 248, 0.12), transparent 40%);
++    }
++
++    .left-panel {
++      display: flex;
++      flex-direction: column;
++      gap: 12px;
++      align-items: center;
++      padding: 12px 8px;
++      background: rgba(8, 10, 16, 0.82);
++      border-radius: 14px;
++      border: 1px solid rgba(255, 255, 255, 0.05);
++      box-shadow: 0 0 14px rgba(0, 0, 0, 0.4);
++    }
++
++    .panel-icon {
++      width: 36px;
++      height: 36px;
++      border-radius: 10px;
++      background: rgba(97, 218, 251, 0.16);
++      border: 1px solid rgba(97, 218, 251, 0.4);
++      display: grid;
++      place-items: center;
++      font-size: 15px;
++      color: var(--accent);
++      box-shadow: 0 0 12px var(--shadow);
++
++    .workspace {
++      display: grid;
++      grid-template-rows: auto 1fr auto;
++      gap: 14px;
++      height: 100%;
++    }
++
++    .kali-topbar {
++      display: flex;
++      justify-content: space-between;
++      align-items: center;
++      padding: 8px 14px;
++      background: rgba(10, 12, 18, 0.92);
++      border-radius: 14px;
++      border: 1px solid rgba(255, 255, 255, 0.06);
++      font-size: 12px;
++      color: var(--muted);
++    }
++
++    .kali-topbar .left,
++    .kali-topbar .right {
++      display: flex;
++      gap: 12px;
++      align-items: center;
++    }
++
++    .kali-pill {
++      padding: 4px 10px;
++      border-radius: 999px;
++      background: rgba(97, 218, 251, 0.15);
++      color: var(--accent);
++      font-size: 11px;
++    }
++
++    .terminal-window {
++      display: grid;
++      grid-template-rows: auto 1fr auto;
++      background: rgba(6, 8, 12, 0.96);
++      border-radius: 16px;
++      border: 1px solid rgba(97, 218, 251, 0.2);
++      box-shadow: 0 0 24px rgba(97, 218, 251, 0.2);
++      overflow: hidden;
++    }
++
++    .terminal-header {
++      display: flex;
++      align-items: center;
++      justify-content: space-between;
++      padding: 8px 12px;
++      background: rgba(10, 14, 20, 0.9);
++      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
++      font-size: 12px;
++      color: var(--muted);
++    }
++
++    .terminal-header .dots {
++      display: flex;
++      gap: 6px;
++    }
++
++    .terminal-header .dot {
++      width: 10px;
++      height: 10px;
++      border-radius: 50%;
++      background: rgba(255, 255, 255, 0.2);
++    }
++
++    .terminal-body {
++      padding: 14px;
++      overflow-y: auto;
++      font-size: 12px;
++      line-height: 1.7;
++      color: var(--text);
++    }
++
++    .terminal-body .line {
++      display: block;
++      margin-bottom: 6px;
++      white-space: pre-wrap;
++    }
++
++    .prompt {
++      color: var(--accent-3);
++    }
++
++    .command {
++      color: var(--accent);
++    }
++
++    .output {
++      color: var(--muted);
++    }
++
++    .terminal-input {
++      display: flex;
++      align-items: center;
++      gap: 10px;
++      padding: 10px 14px;
++      border-top: 1px solid rgba(255, 255, 255, 0.06);
++      background: rgba(8, 12, 18, 0.95);
++    }
++
++    .terminal-input input {
++      flex: 1;
++      background: transparent;
++      border: none;
++      color: var(--text);
++      font-size: 12px;
++      outline: none;
++    }
++
++    .terminal-input button {
++      background: var(--accent);
++      color: #001117;
++      border: none;
++      padding: 6px 12px;
++      border-radius: 10px;
++      cursor: pointer;
++      font-size: 11px;
++    }
++
++    .taskbar {
++      display: flex;
++      gap: 10px;
++      align-items: center;
++      padding: 8px 12px;
++      background: rgba(8, 10, 16, 0.88);
++      border-radius: 14px;
++      border: 1px solid rgba(255, 255, 255, 0.06);
++    }
++
++    .task-pill {
++      padding: 4px 10px;
++      border-radius: 999px;
++      background: rgba(97, 218, 251, 0.12);
++      color: var(--accent);
++      font-size: 11px;
++    }
++
++    .right-panel {
++      display: grid;
++      gap: 12px;
++      align-content: start;
++    }
++
++    .panel {
++      background: var(--panel);
++      border: 1px solid rgba(255, 255, 255, 0.08);
++      border-radius: 14px;
++      padding: 12px;
++      box-shadow: 0 0 16px rgba(0, 0, 0, 0.35);
++    }
++
++    .panel h3 {
++      font-size: 12px;
++      color: var(--accent);
++      margin-bottom: 10px;
++      text-transform: uppercase;
++      letter-spacing: 1px;
++    }
++
++    .panel p {
++      font-size: 11px;
++      color: var(--muted);
++      line-height: 1.6;
++      margin-bottom: 8px;
++    }
++
++    .meter {
++      height: 6px;
++      background: rgba(255, 255, 255, 0.08);
++      border-radius: 999px;
++      overflow: hidden;
++      margin: 6px 0 10px;
++    }
++
++    .meter span {
++      display: block;
++      height: 100%;
++      background: linear-gradient(90deg, var(--accent-3), var(--accent));
++      width: 65%;
++      transition: width 0.3s ease;
++    }
++
++    .hint {
++      position: absolute;
++      right: 24px;
++      bottom: 22px;
++      background: rgba(10, 14, 20, 0.85);
++      border: 1px solid rgba(255, 255, 255, 0.08);
++      padding: 10px 14px;
++      border-radius: 12px;
++      font-size: 11px;
++      color: var(--muted);
++      z-index: 2;
++    }
++
++    .hint strong {
++      color: var(--accent);
++    }
++
++    .vbox-status {
++      display: flex;
++      align-items: center;
++      justify-content: space-between;
++      padding: 6px 10px;
++      background: var(--chrome);
++      border-top: 1px solid var(--chrome-border);
++      font-size: 11px;
++      color: var(--muted);
++    }
++
++    .status-icons {
++      display: flex;
++      gap: 8px;
++      align-items: center;
++      flex-wrap: wrap;
++    }
++
++    .status-pill {
++      padding: 2px 8px;
++      border-radius: 999px;
++      background: rgba(97, 218, 251, 0.15);
++      border: 1px solid rgba(97, 218, 251, 0.35);
++      color: var(--accent);
++      font-size: 10px;
++    }
++
++    @media (max-width: 1200px) {
++      body {
++        padding: 10px;
++      }
++
++      .kali-desktop {
++        grid-template-columns: 1fr;
++        overflow-y: auto;
++      }
++
++      .left-panel {
++        flex-direction: row;
++        justify-content: center;
++      }
++
++      .hint {
++        position: static;
++        margin: 0 16px 12px;
++      }
+     }
+   </style>
+ </head>
++  <div class="virtualbox-shell">
++    <div class="vbox-titlebar">
++      <div><strong>kali-linux-2024.2</strong> [Running] - Oracle VM VirtualBox</div>
++      <div class="vbox-controls">
++        <div class="vbox-dot"></div>
++        <div class="vbox-dot"></div>
++        <div class="vbox-dot"></div>
++      </div>
++    </div>
++    <div class="vbox-menubar">
++      <span>File</span>
++      <span>Machine</span>
++      <span>View</span>
++      <span>Input</span>
++      <span>Devices</span>
++      <span>Help</span>
++    </div>
++    <div class="vbox-toolbar">
++      <div class="toolbar-btn">▶ <span>Start</span></div>
++      <div class="toolbar-btn">⏸ <span>Pause</span></div>
++      <div class="toolbar-btn">💾 <span>Snapshot</span></div>
++      <div class="toolbar-btn">⚙️ <span>Settings</span></div>
++    </div>
++
++    <div class="kali-desktop">
++      <div class="left-panel">
++        <div class="panel-icon">🖥️</div>
++        <div class="panel-icon">📁</div>
++        <div class="panel-icon">🧰</div>
++        <div class="panel-icon">🛰️</div>
++        <div class="panel-icon">⚙️</div>
++      </div>
++
++      <div class="workspace">
++        <div class="kali-topbar">
++          <div class="left">
++            <span class="kali-pill">Kali XFCE</span>
++            <span>root@kali</span>
++          </div>
++          <div class="right">
++            <span>VPN: ON</span>
++            <span>CPU <strong id="cpu">42%</strong></span>
++            <span>RAM <strong id="ram">3.2GB</strong></span>
++            <span id="clock">00:00</span>
++          </div>
++        </div>
++
++        <div class="terminal-window" aria-label="Kali terminal">
++          <div class="terminal-header">
++            <div class="dots">
++              <div class="dot"></div>
++              <div class="dot"></div>
++              <div class="dot"></div>
++            </div>
++            <div>Terminal - root@kali: ~/ops</div>
++            <div class="status-pill">Connected</div>
++          </div>
++          <div class="terminal-body" id="terminalBody">
++            <span class="line output">Kali GNU/Linux Rolling (kali-2024.2) x86_64</span>
++            <span class="line output">Kernel 6.6.9 | XFCE 4.18 | VirtualBox Guest Additions enabled</span>
++            <span class="line output">Type <strong>help</strong> to see commands.</span>
++          </div>
++          <div class="terminal-input">
++            <span class="prompt">root@kali:~#</span>
++            <input id="terminalInput" type="text" autocomplete="off" placeholder="Type a command..." />
++            <button id="runBtn">Run</button>
++          </div>
++        </div>
++
++        <div class="taskbar">
++          <span class="task-pill">Terminal</span>
++          <span class="task-pill">Firefox ESR</span>
++          <span class="task-pill">Files</span>
++        </div>
++      </div>
++
++      <div class="right-panel">
++        <div class="panel">
++          <h3>System Monitor</h3>
++          <p>External IP: <strong id="ip">181.55.24.93</strong></p>
++          <p>Threat Score: <strong id="threat">LOW</strong></p>
++          <div class="meter"><span id="threatMeter"></span></div>
++          <p>Packets/sec: <strong id="pps">312</strong></p>
++          <div class="meter"><span id="ppsMeter"></span></div>
++        </div>
++        <div class="panel">
++          <h3>Active Tasks</h3>
++          <p>Recon: 10.10.24.0/24 sweep</p>
++          <p>Web Audit: demo-lab.internal</p>
++          <p>Defense: IDS log export</p>
++        </div>
++        <div class="panel">
++          <h3>VM Details</h3>
++          <p>VirtualBox: 7.0</p>
++          <p>vCPU: 4 | RAM: 4GB</p>
++          <p>Ổ đĩa: 7GB | Ổ đĩa ảo: 100GB</p>
++        </div>
++      </div>
++      <div class="hint">Gợi ý: <strong>help</strong>, <strong>neofetch</strong>, <strong>ls</strong>, <strong>cat /etc/apt/sources.list</strong></div>
++    </div>
++
++    <div class="vbox-status">
++      <span>Host Key: Right Ctrl</span>
++      <div class="status-icons">
++        <span class="status-pill">🖥️ 1920x1080</span>
++        <span class="status-pill">💽 SATA</span>
++        <span class="status-pill">📀 7GB</span>
++        <span class="status-pill">🧲 100GB</span>
++        <span class="status-pill">🌐 NAT</span>
++      </div>
++    </div>
++  </div>
++
++  <script>
++    const terminalBody = document.getElementById("terminalBody");
++    const terminalInput = document.getElementById("terminalInput");
++    const runBtn = document.getElementById("runBtn");
++    const clock = document.getElementById("clock");
++    const ip = document.getElementById("ip");
++    const threat = document.getElementById("threat");
++    const threatMeter = document.getElementById("threatMeter");
++    const pps = document.getElementById("pps");
++    const ppsMeter = document.getElementById("ppsMeter");
++    const cpu = document.getElementById("cpu");
++    const ram = document.getElementById("ram");
++
++    const fileSystem = {
++      "/": ["home", "etc", "var", "opt", "usr", "root"],
++      "/home": ["operator"],
++      "/home/operator": ["notes.txt", "targets", "tools"],
++      "/home/operator/targets": ["internal.lab", "web-audit.md"],
++      "/etc": ["hosts", "hostname", "apt", "network", "resolv.conf"],
++      "/etc/apt": ["sources.list"],
++      "/var/log": ["auth.log", "syslog", "kali.log"],
++      "/opt": ["neo-suite", "payloads"],
++    };
++
++    const fileContents = {
++      "/etc/hostname": "kali\n",
++      "/etc/hosts": "127.0.0.1\tlocalhost\n127.0.1.1\tkali\n::1\tlocalhost ip6-localhost ip6-loopback\n",
++      "/etc/resolv.conf": "nameserver 8.8.8.8\nnameserver 1.1.1.1\n",
++      "/etc/apt/sources.list": "deb http://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware\n",
++      "/home/operator/notes.txt": "[Ops Notes]\n- Rotate VPN keys @ 23:00\n- Sweep gateway every 3h\n- Update report for blue team\n",
++      "/home/operator/targets/internal.lab": "10.10.24.11 ssh, http\n10.10.24.14 https, 8080\n10.10.24.20 smb v1\n",
++      "/home/operator/targets/web-audit.md": "# Web Audit\n- TLS 1.2 enforced\n- 2 vulnerable endpoints flagged\n- Update CMS plugins\n",
++      "/var/log/kali.log": "[info] kali boot complete\n[info] guest additions running\n[warn] audit queue at 85%\n",
++    };
++
++    let cwd = "/home/operator";
++    const history = [];
++    let historyIndex = -1;
++
++    function addLine(content, className = "output") {
++      const line = document.createElement("span");
++      line.className = `line ${className}`;
++      line.textContent = content;
++      terminalBody.appendChild(line);
++      terminalBody.scrollTop = terminalBody.scrollHeight;
++    }
++
++    function addHtmlLine(html) {
++      const line = document.createElement("span");
++      line.className = "line";
++      line.innerHTML = html;
++      terminalBody.appendChild(line);
++      terminalBody.scrollTop = terminalBody.scrollHeight;
++    }
++
++    function resolvePath(input) {
++      if (input.startsWith("/")) return input;
++      if (input === "..") return cwd.split("/").slice(0, -1).join("/") || "/";
++      if (input === ".") return cwd;
++      return `${cwd}/${input}`.replace("//", "/");
++    }
++
++    const commands = {
++      help: () => [
++        "Commands:",
++        "- help, clear, whoami, pwd, ls, cd <dir>",
++        "- cat <file>, ifconfig, uname, neofetch",
++        "- nmap <target>, status, report",
++      ],
++      clear: () => "clear",
++      whoami: () => ["root"],
++      pwd: () => [cwd],
++      ls: () => fileSystem[cwd] || ["(empty)"],
++      cd: (args) => {
++        if (!args[0]) return ["cd: missing operand"];
++        const target = resolvePath(args[0]);
++        if (fileSystem[target]) {
++          cwd = target;
++          return [];
++        }
++        return [`cd: ${args[0]}: No such file or directory`];
++      },
++      cat: (args) => {
++        if (!args[0]) return ["cat: missing file operand"];
++        const target = resolvePath(args[0]);
++        if (fileContents[target]) {
++          return fileContents[target].trimEnd().split("\n");
++        }
++        return [`cat: ${args[0]}: No such file`];
++      },
++      ifconfig: () => [
++        "eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500",
++        "    inet 10.10.24.8  netmask 255.255.255.0  broadcast 10.10.24.255",
++        "wlan0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500",
++        "    inet 192.168.1.12  netmask 255.255.255.0  broadcast 192.168.1.255",
++      ],
++      uname: () => ["Linux kali 6.6.9-amd64 #1 SMP PREEMPT_DYNAMIC Debian"],
++      neofetch: () => [
++        "       /\\            kali@kali",
++        "      /  \\\           ---------",
++        "     / /\\ \\          OS: Kali GNU/Linux Rolling",
++        "    / ____ \\         Host: VirtualBox",
++        "   /_/    \_\\        Kernel: 6.6.9-amd64",
++        "                     Uptime: 2 hours",
++        "                     Packages: 2560",
++        "                     Shell: zsh",
++      ],
++      nmap: (args) => {
++        if (!args[0]) return ["nmap: target missing"];
++        return [
++          `[nmap] Scanning ${args[0]}...`,
++          "PORT   STATE SERVICE",
++          "22/tcp open  ssh",
++          "80/tcp open  http",
++          "443/tcp open https",
++          "Nmap done: 1 IP address (1 host up) scanned.",
++        ];
++      },
++      status: () => [
++        "System: kali-rolling | Kernel 6.6.9",
++        "Defense: IDS active | Firewall hardened",
++        "Threat score recalibrated.",
++      ],
++      report: () => [
++        "Generating security report...",
++        "Exported: /var/log/kali/report_0428.pdf",
++        "Status: ready for briefing.",
++      ],
++    };
++
++    function runCommand(raw) {
++      const input = raw.trim();
++      if (!input) return;
++      history.push(input);
++      historyIndex = history.length;
++      addHtmlLine(`<span class="prompt">root@kali:~#</span> <span class="command">${input}</span>`);
++      const [cmd, ...args] = input.split(" ");
++      const action = commands[cmd.toLowerCase()];
++      if (!action) {
++        addLine(`Command not found: ${cmd}`, "output");
++        return;
++      }
++      const result = action(args);
++      if (result === "clear") {
++        terminalBody.innerHTML = "";
++        return;
++      }
++      result.forEach((line) => addLine(line));
++    }
++
++    function updateClock() {
++      const now = new Date();
++      const hours = String(now.getHours()).padStart(2, "0");
++      const minutes = String(now.getMinutes()).padStart(2, "0");
++      clock.textContent = `${hours}:${minutes}`;
++    }
++
++    function pulseStats() {
++      const ppsValue = 240 + Math.floor(Math.random() * 140);
++      const threatValue = Math.floor(Math.random() * 35) + 10;
++      const cpuValue = Math.floor(Math.random() * 30) + 30;
++      const ramValue = (3 + Math.random()).toFixed(1);
++      pps.textContent = ppsValue;
++      ppsMeter.style.width = `${Math.min(100, ppsValue / 5)}%`;
++      threat.textContent = threatValue > 30 ? "MED" : "LOW";
++      threatMeter.style.width = `${threatValue}%`;
++      ip.textContent = `181.55.${Math.floor(Math.random() * 99) + 1}.${Math.floor(Math.random() * 255)}`;
++      cpu.textContent = `${cpuValue}%`;
++      ram.textContent = `${ramValue}GB`;
++    }
++
++    runBtn.addEventListener("click", () => {
++      runCommand(terminalInput.value);
++      terminalInput.value = "";
++    });
++
++    terminalInput.addEventListener("keydown", (event) => {
++      if (event.key === "Enter") {
++        runCommand(terminalInput.value);
++        terminalInput.value = "";
++      }
++      if (event.key === "ArrowUp") {
++        event.preventDefault();
++        historyIndex = Math.max(0, historyIndex - 1);
++        terminalInput.value = history[historyIndex] || "";
++      }
++      if (event.key === "ArrowDown") {
++        event.preventDefault();
++        historyIndex = Math.min(history.length, historyIndex + 1);
++        terminalInput.value = history[historyIndex] || "";
++      }
++    });
++
++    updateClock();
++    pulseStats();
++    setInterval(updateClock, 1000);
++    setInterval(pulseStats, 2500);
++  </script>
+ </body>
+ </html>
+-
+ 
+EOF
+)
 +++ b/index.html
 @@ -1,24 +1,868 @@
  <!DOCTYPE html>
@@ -880,9 +1599,4 @@ index 4a382fcdbc031ca36b4e3190e241e978c4ee89eb..24fb4d3e129922fb06586a2c0279c0d4
 +    initStars();
 +    updateUI();
 +  </script>
- </body>
- </html>
--
- 
-EOF
-)
+
